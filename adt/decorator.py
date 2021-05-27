@@ -1,8 +1,18 @@
 # mypy: no-warn-unused-ignores
 from enum import Enum
-from typing import Any, Callable, Type, TypeVar, no_type_check
+from typing import Any, Callable, Tuple, Type, TypeVar, no_type_check
 
-from adt.case import CaseConstructor
+from adt.case import CaseConstructor, Case
+
+
+def get_case(type_obj):
+    if isinstance(type_obj, type):
+        return Case[type_obj]
+    if type_obj is None:
+        return Case
+    if type_obj._name == "Tuple":
+        return Case[type_obj.__args__]
+    return Case
 
 
 @no_type_check
@@ -14,8 +24,8 @@ def adt(cls):
         return cls
 
     caseConstructors = {
-        k: constructor
-        for k, constructor in annotations.items()
+        k: get_case(typename)
+        for k, typename in annotations.items()
         if not k.startswith("__")
     }
 
@@ -25,9 +35,7 @@ def adt(cls):
                 f"Annotation {k} should be a Case[…] constructor, got {constructor!r} instead"
             )
 
-    cls._Key = Enum(  # type: ignore
-        "_Key", list(caseConstructors.keys())
-    )
+    cls._Key = Enum("_Key", list(caseConstructors.keys()))  # type: ignore
 
     cls._types = list(x.getTypes() for x in list(caseConstructors.values()))
 
@@ -107,7 +115,8 @@ def _installHash(cls: Any) -> None:
 def _installOneConstructor(cls: Any, case: Enum) -> None:
     def constructor(cls: Type[Any], *args: Any, _case: Enum = case) -> Any:
         return cls(
-            key=_case, value=cls.__annotations__[_case.name].constructCase(*args)
+            key=_case,
+            value=get_case(cls.__annotations__[_case.name]).constructCase(*args),
         )
 
     if hasattr(cls, case.name):

@@ -1,7 +1,7 @@
 {
     "editor.formatOnPaste": true,
     "editor.formatOnSave": true,
-    "python.formatting.provider": "yapf",
+    "python.formatting.provider": "black",
     "python.linting.mypyArgs": [
         "--strict",
         "--ignore-missing-imports",
@@ -9,7 +9,6 @@
         "--follow-imports=silent",
         "--show-column-numbers"
     ],
-    "python.pythonPath": "venv/bin/python3",
     "python.testing.unittestArgs": [
         "-v",
         "-s",

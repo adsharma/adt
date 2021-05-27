@@ -136,9 +136,15 @@ def _installOneAccessor(cls: Any, case: Enum) -> None:
 
         return self._value
 
+    def check_type(self: Any, _case: Enum = case) -> bool:
+        return self._key == _case
+
     accessorName = case.name.lower()
+    checkTypeName = "is_" + case.name.lower()
     if accessorName not in cls.__dict__:
         setattr(cls, accessorName, accessor)
+    if checkTypeName not in cls.__dict__:
+        setattr(cls, checkTypeName, check_type)
 
 
 _MatchResult = TypeVar("_MatchResult")

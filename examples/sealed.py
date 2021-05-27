@@ -14,8 +14,12 @@ class Sealed1:
 
 x1 = Sealed1.INTEGER(5)
 print(x1.integer())
+print(x1.is_integer())
+x1 = Sealed1.INTEGER(10)
+print(x1.integer())
 x2 = Sealed1.EMPTY()
 print(x2.empty())
+print(x2.is_empty())
 x3 = Sealed1.STRING_PAIR("foo", "bar")
 print(x3.string_pair())
 

@@ -15,17 +15,19 @@ def adt(cls):
 
     caseConstructors = {
         k: constructor
-        for k, constructor in annotations.items() if not k.startswith('__')
+        for k, constructor in annotations.items()
+        if not k.startswith("__")
     }
 
     for k, constructor in caseConstructors.items():
-        if not hasattr(constructor, 'constructCase'):
+        if not hasattr(constructor, "constructCase"):
             raise TypeError(
-                f'Annotation {k} should be a Case[…] constructor, got {constructor!r} instead'
+                f"Annotation {k} should be a Case[…] constructor, got {constructor!r} instead"
             )
 
     cls._Key = Enum(  # type: ignore
-        '_Key', list(caseConstructors.keys()))
+        "_Key", list(caseConstructors.keys())
+    )
 
     cls._types = list(x.getTypes() for x in list(caseConstructors.values()))
 
@@ -44,10 +46,12 @@ def adt(cls):
 
 
 def _installInit(cls: Any) -> None:
-    def _init(self: Any,
-              key: Enum,
-              value: Any,
-              orig_init: Callable[[Any], None] = cls.__init__) -> None:
+    def _init(
+        self: Any,
+        key: Enum,
+        value: Any,
+        orig_init: Callable[[Any], None] = cls.__init__,
+    ) -> None:
         self._key = key
         self._value = value
         orig_init(self)
@@ -57,17 +61,17 @@ def _installInit(cls: Any) -> None:
 
 def _installRepr(cls: Any) -> None:
     def _repr(self: Any) -> str:
-        return f'{type(self)}.{self._key.name}({self._value})'
+        return f"{type(self)}.{self._key.name}({self._value})"
 
-    if '__repr__' not in cls.__dict__:
+    if "__repr__" not in cls.__dict__:
         cls.__repr__ = _repr
 
 
 def _installStr(cls: Any) -> None:
     def _str(self: Any) -> str:
-        return f'<{type(self)}.{self._key.name}: {self._value}>'
+        return f"<{type(self)}.{self._key.name}: {self._value}>"
 
-    if '__str__' not in cls.__dict__:
+    if "__str__" not in cls.__dict__:
         cls.__str__ = _str
 
 
@@ -83,7 +87,7 @@ def _installEq(cls: Any) -> None:
 
         return bool(self._key == other._key and self._value == other._value)
 
-    if '__eq__' not in cls.__dict__:
+    if "__eq__" not in cls.__dict__:
         cls.__eq__ = _eq
 
 
@@ -96,18 +100,19 @@ def _installHash(cls: Any) -> None:
     def _hash(self: Any) -> int:
         return hash((self._key, self._value))
 
-    if '__hash__' not in cls.__dict__:
+    if "__hash__" not in cls.__dict__:
         cls.__hash__ = _hash
 
 
 def _installOneConstructor(cls: Any, case: Enum) -> None:
     def constructor(cls: Type[Any], *args: Any, _case: Enum = case) -> Any:
-        return cls(key=_case,
-                   value=cls.__annotations__[_case.name].constructCase(*args))
+        return cls(
+            key=_case, value=cls.__annotations__[_case.name].constructCase(*args)
+        )
 
     if hasattr(cls, case.name):
         raise AttributeError(
-            f'{cls} should not have a default value for {case.name}, as this will be a generated constructor'
+            f"{cls} should not have a default value for {case.name}, as this will be a generated constructor"
         )
 
     setattr(cls, case.name, classmethod(constructor))
@@ -117,7 +122,7 @@ def _installOneAccessor(cls: Any, case: Enum) -> None:
     def accessor(self: Any, _case: Enum = case) -> Any:
         if self._key != _case:
             raise AttributeError(
-                f'{self} was constructed as case {self._key.name}, so {_case.name.lower()} is not accessible'
+                f"{self} was constructed as case {self._key.name}, so {_case.name.lower()} is not accessible"
             )
 
         return self._value
@@ -127,36 +132,38 @@ def _installOneAccessor(cls: Any, case: Enum) -> None:
         setattr(cls, accessorName, accessor)
 
 
-_MatchResult = TypeVar('_MatchResult')
+_MatchResult = TypeVar("_MatchResult")
 
 
 def _installMatch(cls: Any, cases: Type[Enum]) -> None:
-    def match(self: Any,
-              _cases: Type[Enum] = cases,
-              **kwargs: Callable[..., _MatchResult]) -> _MatchResult:
+    def match(
+        self: Any, _cases: Type[Enum] = cases, **kwargs: Callable[..., _MatchResult]
+    ) -> _MatchResult:
         caseNames = _cases.__members__.keys()
         upperKeys = {k: k.upper() for k in kwargs.keys()}
 
         for key in upperKeys.values():
             if key not in caseNames:
                 raise ValueError(
-                    f'Unrecognized case {key} in pattern match against {self} (expected one of {caseNames})'
+                    f"Unrecognized case {key} in pattern match against {self} (expected one of {caseNames})"
                 )
 
         for key in caseNames:
             if key not in upperKeys.values():
                 raise ValueError(
-                    f'Incomplete pattern match against {self} (missing {key})')
+                    f"Incomplete pattern match against {self} (missing {key})"
+                )
 
         for key, callback in kwargs.items():
             upperKey = upperKeys[key]
 
             if self._key == _cases.__members__[upperKey]:
                 caseConstructor: CaseConstructor.AnyConstructor = type(
-                    self).__annotations__[upperKey]
+                    self
+                ).__annotations__[upperKey]
                 return caseConstructor.deconstructCase(self._value, callback)
 
-        assert False, 'Execution should not reach here'
+        assert False, "Execution should not reach here"
 
-    if 'match' not in cls.__dict__:
+    if "match" not in cls.__dict__:
         cls.match = match
